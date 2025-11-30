@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>EduWebinars — Demo</title>
+<style>
+  :root{
+    --bg:#f4f7fb; --card:#fff; --accent:#2b6ef6; --muted:#6b7280;
+    --danger:#ef4444; --success:#16a34a;
+  }
+  *{box-sizing:border-box}
+  body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial; margin:0; background:var(--bg); color:#0f172a;}
+  header{background:linear-gradient(90deg,#ffffff55,#ffffff00); padding:18px 24px; display:flex; gap:16px; align-items:center; justify-content:space-between; border-bottom:1px solid #e6eef8;}
+  .brand{display:flex; gap:12px; align-items:center;}
+  .logo{width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#8b5cf6); display:flex; align-items:center; justify-content:center; color:white; font-weight:700;}
+  main{width:95%; max-width:1100px; margin:22px auto 80px;}
+  .panel{background:var(--card); border-radius:12px; padding:18px; box-shadow:0 6px 18px rgba(20,40,70,0.04); margin-bottom:18px;}
+  .controls{display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
+  button{background:var(--accent); color:white; border:0; padding:8px 12px; border-radius:8px; cursor:pointer;}
+  button.ghost{background:transparent; color:var(--accent); border:1px solid #e6eef8;}
+  .small{padding:6px 10px; font-size:14px}
+  .muted{color:var(--muted); font-size:14px}
+  .grid{display:grid; gap:12px;}
+  .two{grid-template-columns:1fr 360px;}
+  label{display:block; font-size:13px; margin-bottom:6px; color:#111827;}
+  input[type="text"], input[type="datetime-local"], textarea, select{width:100%; padding:8px 10px; border-radius:8px; border:1px solid #e6eef8; background:#fbfdff}
+  .event{border:1px solid #eaf2ff; padding:12px; border-radius:10px; display:flex; justify-content:space-between; gap:12px; align-items:center;}
+  .event-info{flex:1;}
+  .chips{display:flex; gap:8px; flex-wrap:wrap}
+  .chip{background:#eef6ff; padding:6px 8px; border-radius:999px; color:#075985; font-weight:600; font-size:13px}
+  .list{display:flex; flex-direction:column; gap:8px; max-height:420px; overflow:auto; padding-right:6px}
+  .rightcol{position:sticky; top:20px}
+  .modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(2,6,23,0.45); z-index:60}
+  .modal.open{display:flex}
+  .modal-card{background:var(--card); padding:18px; border-radius:12px; width:720px; max-width:95%}
+  .row{display:flex; gap:12px}
+  table{width:100%; border-collapse:collapse}
+  th,td{padding:8px; text-align:left; border-bottom:1px dashed #eef2ff; font-size:14px}
+  .muted-row{color:var(--muted); font-size:13px}
+  .resource-list{display:flex; flex-direction:column; gap:6px}
+  .resource-item{padding:8px; border-radius:8px; background:#fbfdff; border:1px solid #eef6ff; display:flex; justify-content:space-between; align-items:center}
+  footer{padding:18px; text-align:center; color:var(--muted)}
+  @media (max-width:880px){ .two{grid-template-columns:1fr} .rightcol{position:static}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">EW</div>
+    <div>
+      <div style="font-weight:700">EduWebinars (demo)</div>
+      <div class="muted" style="font-size:13px">Create, register, attend and manage webinars</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <label class="muted" style="margin:0 8px 0 0">Mode</label>
+    <select id="modeSelect" aria-label="Switch mode">
+      <option value="user">User</option>
+      <option value="admin">Admin</option>
+    </select>
+    <button id="newWebinarBtn" class="small ghost" style="display:none">+ New webinar</button>
+    <button id="clearData" class="small ghost">Reset demo</button>
+  </div>
+</header>
+
+<main>
+  <section class="panel grid two">
+    <div>
+      <h3 style="margin-top:0">Events</h3>
+      <div class="muted" id="upcomingCount">Loading events...</div>
+      <div class="list" id="eventsList" style="margin-top:12px"></div>
+    </div>
+
+    <aside class="panel rightcol">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <div>
+          <div style="font-weight:700">Quick actions</div>
+          <div class="muted" style="font-size:13px">For current mode</div>
+        </div>
+      </div>
+
+      <hr style="border:none; height:8px;">
+
+      <div style="margin-bottom:12px">
+        <div style="font-weight:600">Search events</div>
+        <input id="searchInput" placeholder="Search title or description" />
+      </div>
+
+      <div style="margin-bottom:12px">
+        <div style="font-weight:600">Filter</div>
+        <select id="filterSelect">
+          <option value="all">All</option>
+          <option value="upcoming">Upcoming</option>
+          <option value="past">Past</option>
+          <option value="recorded">Has recording</option>
+        </select>
+      </div>
+
+      <div style="margin-top:8px">
+        <div style="font-weight:600">My registrations</div>
+        <div id="myRegs" class="muted" style="margin-top:6px">— none yet —</div>
+      </div>
+
+    </aside>
+  </section>
+
+  <!-- Admin: Create/Edit Webinar Modal -->
+  <div class="modal" id="modal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <div>
+          <div id="modalTitle" style="font-weight:700">New webinar</div>
+          <div id="modalSubtitle" class="muted">Create a webinar or workshop</div>
+        </div>
+        <div><button id="closeModal" class="ghost small">Close</button></div>
+      </div>
+
+      <hr style="margin:12px 0; border:none; height:8px">
+
+      <div class="grid" style="gap:10px">
+        <label>Title<input id="wTitle" type="text" placeholder="e.g. Intro to Node.js" /></label>
+        <label>Description<textarea id="wDesc" rows="3" placeholder="Short description"></textarea></label>
+        <div class="row">
+          <label style="flex:1">Start time<input id="wStart" type="datetime-local" /></label>
+          <label style="flex:1">End time<input id="wEnd" type="datetime-local" /></label>
+        </div>
+        <label>Speaker / Organizer<input id="wSpeaker" type="text" placeholder="Name or team" /></label>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button id="saveWebinarBtn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attend / Live / Recording modal -->
+  <div class="modal" id="attendModal">
+    <div class="modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div><div id="attendTitle" style="font-weight:700">Attend</div><div id="attendWhen" class="muted" style="font-size:13px"></div></div>
+        <div><button id="closeAttend" class="ghost small">Close</button></div>
+      </div>
+
+      <hr style="margin:12px 0; border:none; height:8px">
+
+      <div id="attendBody">
+        <!-- dynamic -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin: Registrations modal -->
+  <div class="modal" id="regsModal">
+    <div class="modal-card" style="max-width:900px">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div><div id="regsTitle" style="font-weight:700">Registrations</div><div id="regsSubtitle" class="muted" style="font-size:13px"></div></div>
+        <div><button id="closeRegs" class="ghost small">Close</button></div>
+      </div>
+
+      <hr style="margin:12px 0; border:none; height:8px">
+
+      <div id="regsBody">
+        <!-- dynamic -->
+      </div>
+    </div>
+  </div>
+
+  <section class="panel">
+    <h3 style="margin-top:0">Post-event resources & recordings</h3>
+    <div class="muted">Admin can upload materials and recordings for each event. Users can download them.</div>
+    <div style="margin-top:12px" id="resourcesSection"></div>
+  </section>
+
+</main>
+
+<footer>
+  EduWebinars demo • Built with plain HTML/JS • Data stored in your browser (localStorage)
+</footer>
+
+<script>
+/*
+  EduWebinars — single-file demo
+  - Data model stored in localStorage under key 'ew_demo_data'
+  - webinars: array of {id,title,desc,speaker,start,end,resources:[],registrations:[],recordingUrl}
+  - resources: {id,name,size,dataUrl,uploadedAt}
+*/
+
+const storageKey = 'ew_demo_data_v1';
+const defaultData = { webinars: [] };
+
+function getData(){
+  const raw = localStorage.getItem(storageKey);
+  if(!raw) { localStorage.setItem(storageKey, JSON.stringify(defaultData)); return structuredClone(defaultData); }
+  try { return JSON.parse(raw); } catch(e) { console.error(e); localStorage.setItem(storageKey, JSON.stringify(defaultData)); return structuredClone(defaultData); }
+}
+function saveData(data){ localStorage.setItem(storageKey, JSON.stringify(data)); }
+
+// Utilities
+function uid(prefix='id'){ return prefix + '_' + Math.random().toString(36).slice(2,9); }
+function formatDateLocal(iso){ if(!iso) return '-'; let d=new Date(iso); return d.toLocaleString(); }
+function isPast(iso){ if(!iso) return false; return new Date(iso) < new Date(); }
+
+// UI refs
+const modeSelect = document.getElementById('modeSelect');
+const newWebinarBtn = document.getElementById('newWebinarBtn');
+const eventsList = document.getElementById('eventsList');
+const upcomingCount = document.getElementById('upcomingCount');
+const modal = document.getElementById('modal');
+const closeModal = document.getElementById('closeModal');
+const saveWebinarBtn = document.getElementById('saveWebinarBtn');
+const wTitle = document.getElementById('wTitle');
+const wDesc = document.getElementById('wDesc');
+const wStart = document.getElementById('wStart');
+const wEnd = document.getElementById('wEnd');
+const wSpeaker = document.getElementById('wSpeaker');
+const searchInput = document.getElementById('searchInput');
+const filterSelect = document.getElementById('filterSelect');
+const myRegsEl = document.getElementById('myRegs');
+const clearData = document.getElementById('clearData');
+const attendModal = document.getElementById('attendModal');
+const attendTitle = document.getElementById('attendTitle');
+const attendWhen = document.getElementById('attendWhen');
+const attendBody = document.getElementById('attendBody');
+const closeAttend = document.getElementById('closeAttend');
+const regsModal = document.getElementById('regsModal');
+const regsBody = document.getElementById('regsBody');
+const regsTitle = document.getElementById('regsTitle');
+const closeRegs = document.getElementById('closeRegs');
+const resourcesSection = document.getElementById('resourcesSection');
+
+let editingId = null;
+let currentMode = modeSelect.value;
+let myUserId = localStorage.getItem('ew_demo_user') || uid('user'); // invisible user id to associate registrations
+localStorage.setItem('ew_demo_user', myUserId);
+
+// Initial demo seed (only if empty)
+(function seedDemo(){
+  const data = getData();
+  if(data.webinars.length === 0){
+    const w1 = {
+      id: uid('web'),
+      title: 'Intro to JavaScript',
+      desc: 'Basics of JS: syntax, variables, and DOM manipulation.',
+      speaker: 'Jane Doe',
+      start: new Date(Date.now() + 1000 * 60 * 60).toISOString(), // 1 hour from now
+      end: new Date(Date.now() + 1000 * 60 * 60 * 2).toISOString(),
+      resources: [],
+      registrations: [],
+      recordingUrl: ''
+    };
+    const w2 = {
+      id: uid('web'),
+      title: 'Building REST APIs with Node.js',
+      desc: 'Design and implement RESTful APIs using Express.',
+      speaker: 'Team Backend',
+      start: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
+      end: new Date(Date.now() - 1000 * 60 * 60 * 47).toISOString(),
+      resources: [],
+      registrations: [],
+      recordingUrl: ''
+    };
+    data.webinars.push(w1,w2);
+    saveData(data);
+  }
+})();
+
+function render(){
+  const data = getData();
+  // mode
+  currentMode = modeSelect.value;
+  newWebinarBtn.style.display = currentMode === 'admin' ? 'inline-block' : 'none';
+
+  // events list
+  const q = searchInput.value.trim().toLowerCase();
+  const filter = filterSelect.value;
+  let events = data.webinars.slice().sort((a,b)=> new Date(a.start) - new Date(b.start));
+
+  if(q){
+    events = events.filter(e => e.title.toLowerCase().includes(q) || (e.desc || '').toLowerCase().includes(q));
+  }
+  if(filter === 'upcoming') events = events.filter(e => !isPast(e.end));
+  if(filter === 'past') events = events.filter(e => isPast(e.end));
+  if(filter === 'recorded') events = events.filter(e => e.recordingUrl);
+
+  eventsList.innerHTML = '';
+  if(events.length === 0){
+    eventsList.innerHTML = '<div class="muted">No events found.</div>';
+  } else {
+    for(const e of events){
+      const el = document.createElement('div');
+      el.className = 'event';
+      const left = document.createElement('div');
+      left.className = 'event-info';
+      left.innerHTML = `
+        <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start">
+          <div>
+            <div style="font-weight:700">${escapeHtml(e.title)}</div>
+            <div class="muted-row">${escapeHtml(e.speaker || '')} • ${formatDateLocal(e.start)} → ${formatDateLocal(e.end)}</div>
+            <div style="margin-top:6px" class="muted">${escapeHtml(e.desc || '')}</div>
+            <div style="margin-top:8px" class="chips">
+              ${isPast(e.end) ? '<span class="chip">Past</span>' : '<span class="chip">Upcoming</span>'}
+              ${e.recordingUrl ? '<span class="chip">Recording</span>' : ''}
+            </div>
+          </div>
+          <div style="min-width:120px; display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+            ${ currentMode === 'admin' ? `<button class="small" data-action="regs" data-id="${e.id}">Registrations</button>
+              <div style="display:flex; gap:6px;">
+                <button class="small ghost" data-action="edit" data-id="${e.id}">Edit</button>
+                <button class="small ghost" data-action="delete" data-id="${e.id}">Delete</button>
+              </div>` : `
+              <button class="small" data-action="view" data-id="${e.id}">${isPast(e.end) ? 'View recording' : 'Register / Attend'}</button>
+            `}
+          </div>
+        </div>
+      `;
+      // event listeners via delegation at parent
+      el.querySelectorAll('button').forEach(btn=>{
+        btn.addEventListener('click', (ev)=>{
+          const action = btn.getAttribute('data-action');
+          const id = btn.getAttribute('data-id');
+          handleEventAction(action, id);
+        });
+      });
+
+      eventsList.appendChild(el);
+    }
+  }
+
+  // counts and my regs
+  const upcomingCountVal = data.webinars.filter(w=> !isPast(w.end)).length;
+  upcomingCount.textContent = `${upcomingCountVal} upcoming event(s) — ${data.webinars.length} total`;
+  const myRegs = data.webinars.reduce((acc,w)=>{
+    if(w.registrations && w.registrations.some(r=>r.userId === myUserId)) acc.push(w.title);
+    return acc;
+  }, []);
+  myRegsEl.textContent = myRegs.length ? myRegs.join(' • ') : '— none yet —';
+
+  // resources area
+  renderResources();
+}
+
+function renderResources(){
+  const data = getData();
+  resourcesSection.innerHTML = '';
+  if(currentMode === 'admin'){
+    // show upload form for each event
+    for(const w of data.webinars.sort((a,b)=> new Date(b.start)-new Date(a.start))){
+      const div = document.createElement('div');
+      div.style.marginBottom = '10px';
+      div.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div><div style="font-weight:700">${escapeHtml(w.title)}</div><div class="muted" style="font-size:13px">${formatDateLocal(w.start)}</div></div>
+          <div>
+            <input type="file" id="file_${w.id}" style="display:none" />
+            <button class="small" data-upload="${w.id}">Upload resource</button>
+            <button class="small ghost" data-setrec="${w.id}">${w.recordingUrl ? 'Update recording' : 'Add recording link'}</button>
+          </div>
+        </div>
+        <div style="margin-top:8px" class="resource-list" id="reslist_${w.id}"></div>
+      `;
+      resourcesSection.appendChild(div);
+      // attach file input listener
+      const fileInput = div.querySelector(`#file_${w.id}`);
+      const uploadBtn = div.querySelector(`[data-upload="${w.id}"]`);
+      const setRecBtn = div.querySelector(`[data-setrec="${w.id}"]`);
+      uploadBtn.addEventListener('click', ()=> fileInput.click());
+      fileInput.addEventListener('change', async (ev)=>{
+        const f = ev.target.files[0];
+        if(!f) return;
+        const reader = new FileReader();
+        reader.onload = function(ev2){
+          const dataUrl = ev2.target.result;
+          const resource = {
+            id: uid('res'),
+            name: f.name,
+            size: f.size,
+            dataUrl,
+            uploadedAt: new Date().toISOString()
+          };
+          const d = getData();
+          const target = d.webinars.find(x=>x.id === w.id);
+          target.resources = target.resources || [];
+          target.resources.push(resource);
+          saveData(d);
+          render();
+          alert('Resource uploaded (stored in browser).');
+        };
+        reader.readAsDataURL(f);
+      });
+      setRecBtn.addEventListener('click', ()=>{
+        const url = prompt('Paste recording URL (or leave empty to clear):', w.recordingUrl || '');
+        const d = getData();
+        const target = d.webinars.find(x=>x.id === w.id);
+        target.recordingUrl = url || '';
+        saveData(d);
+        render();
+      });
+
+      // render list
+      const resListEl = div.querySelector(`#reslist_${w.id}`);
+      resListEl.innerHTML = '';
+      for(const r of (w.resources || [])){
+        const item = document.createElement('div');
+        item.className = 'resource-item';
+        item.innerHTML = `<div>${escapeHtml(r.name)} <span class="muted" style="font-size:12px">• ${new Date(r.uploadedAt).toLocaleString()}</span></div>
+          <div style="display:flex; gap:8px;">
+            <a href="${r.dataUrl}" download="${encodeURIComponent(r.name)}"><button class="small">Download</button></a>
+            <button class="small ghost" data-resdel="${r.id}" data-w="${w.id}">Delete</button>
+          </div>
+        `;
+        item.querySelector(`[data-resdel="${r.id}"]`)?.addEventListener('click', ()=> {
+          if(!confirm('Delete resource?')) return;
+          const d = getData();
+          const target = d.webinars.find(x=>x.id === w.id);
+          target.resources = target.resources.filter(rr=>rr.id !== r.id);
+          saveData(d);
+          render();
+        });
+        resListEl.appendChild(item);
+      }
+    }
+  } else {
+    // user view: list resources for events that have resources or recording
+    for(const w of getData().webinars.filter(x => (x.resources && x.resources.length) || x.recordingUrl).sort((a,b)=> new Date(b.start)-new Date(a.start))){
+      const card = document.createElement('div');
+      card.style.marginBottom = '10px';
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div><div style="font-weight:700">${escapeHtml(w.title)}</div><div class="muted">${formatDateLocal(w.start)}</div></div>
+          <div>
+            ${w.recordingUrl ? `<a href="${w.recordingUrl}" target="_blank"><button class="small">Open recording</button></a>` : ''}
+            ${w.resources && w.resources.length ? `<button class="small ghost" data-openres="${w.id}">View materials</button>` : ''}
+          </div>
+        </div>
+        <div style="margin-top:8px" id="userRes_${w.id}"></div>
+      `;
+      resourcesSection.appendChild(card);
+      const openResBtn = card.querySelector(`[data-openres="${w.id}"]`);
+      openResBtn?.addEventListener('click', ()=>{
+        const list = w.resources.map(r=> `<div style="padding:8px; border-radius:8px; background:#fff; border:1px solid #eef6ff; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+          <div>${escapeHtml(r.name)}</div>
+          <div><a href="${r.dataUrl}" download="${encodeURIComponent(r.name)}"><button class="small">Download</button></a></div>
+        </div>`).join('');
+        const target = card.querySelector(`#userRes_${w.id}`);
+        target.innerHTML = list;
+      });
+    }
+  }
+}
+
+// escape helper
+function escapeHtml(str){
+  if(!str) return '';
+  return String(str).replace(/[&<>"']/g, function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});
+}
+
+// handlers
+newWebinarBtn.addEventListener('click', ()=>{
+  openNewWebinarModal();
+});
+closeModal.addEventListener('click', ()=> modal.classList.remove('open'));
+
+function openNewWebinarModal(editId){
+  editingId = editId || null;
+  if(editingId){
+    const d = getData();
+    const w = d.webinars.find(x=>x.id === editingId);
+    wTitle.value = w.title; wDesc.value = w.desc; wStart.value = w.start ? (new Date(w.start)).toISOString().slice(0,16) : ''; wEnd.value = w.end ? (new Date(w.end)).toISOString().slice(0,16) : ''; wSpeaker.value = w.speaker || '';
+    document.getElementById('modalTitle').textContent = 'Edit webinar';
+  } else {
+    wTitle.value = ''; wDesc.value = ''; wStart.value = ''; wEnd.value = ''; wSpeaker.value = '';
+    document.getElementById('modalTitle').textContent = 'New webinar';
+  }
+  modal.classList.add('open');
+}
+
+saveWebinarBtn.addEventListener('click', ()=>{
+  const title = wTitle.value.trim();
+  if(!title){ alert('Title required'); return; }
+  const d = getData();
+  if(editingId){
+    const w = d.webinars.find(x=>x.id === editingId);
+    w.title = title; w.desc = wDesc.value; w.start = wStart.value ? new Date(wStart.value).toISOString() : ''; w.end = wEnd.value ? new Date(wEnd.value).toISOString() : ''; w.speaker = wSpeaker.value;
+  } else {
+    const newW = {
+      id: uid('web'),
+      title,
+      desc: wDesc.value,
+      speaker: wSpeaker.value,
+      start: wStart.value ? new Date(wStart.value).toISOString() : '',
+      end: wEnd.value ? new Date(wEnd.value).toISOString() : '',
+      resources: [],
+      registrations: [],
+      recordingUrl: ''
+    };
+    d.webinars.push(newW);
+  }
+  saveData(d);
+  modal.classList.remove('open');
+  render();
+});
+
+eventsList.addEventListener('click', (ev)=>{
+  // delegation handled via generated buttons; nothing else needed
+});
+
+function handleEventAction(action, id){
+  const d = getData();
+  const w = d.webinars.find(x=>x.id === id);
+  if(!w) return;
+  if(action === 'edit') openNewWebinarModal(id);
+  if(action === 'delete'){ if(confirm('Delete this webinar? This will remove registrations & resources.')){ d.webinars = d.webinars.filter(x=>x.id!==id); saveData(d); render(); } }
+  if(action === 'regs'){ openRegistrations(id); }
+  if(action === 'view' || action === 'attend') { openAttend(w.id); }
+}
+
+function openRegistrations(id){
+  const d = getData();
+  const w = d.webinars.find(x=>x.id===id);
+  regsTitle.textContent = `Registrations — ${w.title}`;
+  regsBody.innerHTML = '';
+  if(!w.registrations || w.registrations.length === 0){
+    regsBody.innerHTML = '<div class="muted">No registrations yet.</div>';
+  } else {
+    const table = document.createElement('table');
+    table.innerHTML = `<thead><tr><th>Name / Email</th><th>Registered at</th><th>Actions</th></tr></thead><tbody></tbody>`;
+    const tbody = table.querySelector('tbody');
+    for(const r of w.registrations){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(r.name || '—')}<div class="muted" style="font-size:12px">${escapeHtml(r.email || '')}</div></td>
+        <td>${new Date(r.registeredAt).toLocaleString()}</td>
+        <td><button class="small ghost" data-unreg="${r.userId}" data-w="${w.id}">Remove</button></td>`;
+      tbody.appendChild(tr);
+    }
+    regsBody.appendChild(table);
+    regsBody.addEventListener('click', function onClick(ev){
+      const btn = ev.target.closest('button[data-unreg]');
+      if(!btn) return;
+      const uid = btn.getAttribute('data-unreg'); const wid = btn.getAttribute('data-w');
+      if(!confirm('Remove registration for this user?')) return;
+      const dat = getData();
+      const we = dat.webinars.find(x=>x.id===wid);
+      we.registrations = we.registrations.filter(rr=> rr.userId !== uid);
+      saveData(dat);
+      openRegistrations(wid); // refresh
+    });
+  }
+  regsModal.classList.add('open');
+}
+
+closeRegs.addEventListener('click', ()=> regsModal.classList.remove('open'));
+
+function openAttend(id){
+  const d = getData();
+  const w = d.webinars.find(x=>x.id===id);
+  attendTitle.textContent = w.title;
+  attendWhen.textContent = formatDateLocal(w.start) + ' — ' + formatDateLocal(w.end);
+
+  attendBody.innerHTML = '';
+  if(!isPast(w.end)){
+    // upcoming or live: show register button + "join live" if in time window
+    const regDiv = document.createElement('div');
+    regDiv.innerHTML = `<div style="margin-bottom:10px">${escapeHtml(w.desc || '')}</div>`;
+    const already = (w.registrations||[]).some(r=>r.userId === myUserId);
+    const regBtn = document.createElement('button');
+    regBtn.textContent = already ? 'Registered' : 'Register';
+    regBtn.className = 'small';
+    regBtn.disabled = already;
+    regBtn.addEventListener('click', ()=>{
+      // simple registration form
+      const name = prompt('Your name (for registration):', '');
+      if(!name) return;
+      const email = prompt('Email (optional):', '');
+      const dat = getData();
+      const target = dat.webinars.find(x=>x.id===w.id);
+      target.registrations = target.registrations || [];
+      target.registrations.push({ userId: myUserId, name, email, registeredAt: new Date().toISOString() });
+      saveData(dat);
+      alert('Registered — you will appear in My registrations.');
+      render();
+      openAttend(w.id);
+    });
+    regDiv.appendChild(regBtn);
+
+    // join live if now between start and end +- 30 minutes
+    const now = new Date();
+    const start = w.start ? new Date(w.start) : null;
+    const end = w.end ? new Date(w.end) : null;
+    const inWindow = start && end && now >= new Date(start.getTime() - 1000*60*15) && now <= new Date(end.getTime() + 1000*60*15);
+    if(inWindow){
+      const joinBtn = document.createElement('button');
+      joinBtn.textContent = 'Join live (simulated)';
+      joinBtn.className = 'small';
+      joinBtn.style.marginLeft = '8px';
+      joinBtn.addEventListener('click', ()=>{
+        // show a simulated live player (placeholder)
+        attendBody.innerHTML = `<div style="margin-bottom:10px">Live session — simulated stream</div>
+        <div style="background:#000; color:#fff; padding:24px; border-radius:8px; text-align:center; font-weight:700">LIVE: ${escapeHtml(w.title)}</div>
+        <div style="margin-top:10px" class="muted">This demo does not stream real video. In a real app you'd embed a streaming widget (e.g., YouTube Live, Vimeo, or WebRTC).</div>`;
+      });
+      regDiv.appendChild(joinBtn);
+    } else {
+      const when = document.createElement('div');
+      when.className = 'muted';
+      when.style.marginTop = '8px';
+      when.textContent = 'Not live right now.';
+      regDiv.appendChild(when);
+    }
+
+    attendBody.appendChild(regDiv);
+  } else {
+    // past -> show recording and resources
+    const body = document.createElement('div');
+    body.innerHTML = `<div style="margin-bottom:8px">${escapeHtml(w.desc || '')}</div>`;
+    if(w.recordingUrl){
+      body.innerHTML += `<div style="margin-bottom:8px"><a href="${w.recordingUrl}" target="_blank"><button class="small">Open recording</button></a></div>`;
+    } else {
+      body.innerHTML += `<div class="muted" style="margin-bottom:8px">No recording available.</div>`;
+    }
+    if(w.resources && w.resources.length){
+      const resHtml = w.resources.map(r=> `<div style="padding:8px; border-radius:8px; background:#fff; border:1px solid #eef6ff; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+        <div>${escapeHtml(r.name)}</div>
+        <div><a href="${r.dataUrl}" download="${encodeURIComponent(r.name)}"><button class="small">Download</button></a></div>
+      </div>`).join('');
+      body.innerHTML += `<div style="margin-top:6px"><div style="font-weight:600">Materials</div>${resHtml}</div>`;
+    }
+    attendBody.appendChild(body);
+  }
+
+  attendModal.classList.add('open');
+}
+
+closeAttend.addEventListener('click', ()=> attendModal.classList.remove('open'));
+
+// search/filter listeners
+searchInput.addEventListener('input', ()=> render());
+filterSelect.addEventListener('change', ()=> render());
+modeSelect.addEventListener('change', ()=> render());
+
+// registrations: open via admin actions, handled earlier
+
+// my registrations link can be clicked to show the registrations in user mode
+myRegsEl.addEventListener('click', ()=>{
+  // show list of events user registered for
+  const data = getData();
+  const regs = data.webinars.filter(w=> (w.registrations||[]).some(r=>r.userId === myUserId));
+  if(regs.length === 0) { alert('No registrations yet'); return; }
+  const list = regs.map(w=> `${w.title} — ${formatDateLocal(w.start)} ${isPast(w.end) ? '(past)' : '(upcoming)'}`).join('\\n');
+  alert('My registrations:\\n\\n' + list);
+});
+
+// clear demo
+clearData.addEventListener('click', ()=>{
+  if(!confirm('Reset demo data? This clears webinars, registrations and resources stored in your browser.')) return;
+  localStorage.removeItem(storageKey);
+  render();
+});
+
+// initial render
+render();
+</script>
+
+</body>
+</html>

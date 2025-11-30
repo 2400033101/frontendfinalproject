@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EduWebinars — Combined Demo (Auth + Registration)</title>
+  <style>
+    :root{
+      --accent:#1e88e5;
+      --bg-dark:#121212;
+      --card:#fff;
+      --muted:#6b7280;
+    }
+    /* ====== GLOBAL ====== */
+    *{box-sizing:border-box}
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #eef2f3, #dfe9f3);
+      min-height: 100vh;
+      color: #111;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    header.app-header{
+      background: var(--accent);
+      color: #fff;
+      padding: 14px 20px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+    }
+    .brand { display:flex; align-items:center; gap:12px; }
+    .logo {
+      height:44px; width:44px; border-radius:8px;
+      display:flex; align-items:center; justify-content:center;
+      background: rgba(255,255,255,0.18); font-weight:700;
+      font-size:18px;
+    }
+    header .meta { font-weight:700; font-size:1rem; }
+    header .sub { font-size:12px; opacity:0.95; color:#e8f4ff; }
+
+    main.app {
+      padding: 24px;
+      max-width: 1100px;
+      margin: 24px auto;
+    }
+
+    /* ====== AUTH CARD ====== */
+    .auth-screen{
+      display:flex; align-items:center; justify-content:center; height:calc(100vh - 92px);
+    }
+    .auth-card{
+      width: 400px;
+      background: white;
+      padding: 26px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+      animation: fadeIn 0.6s ease;
+    }
+    .muted{ color: var(--muted); }
+    input, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      margin-top:8px;
+      border-radius:8px;
+      border:1px solid #e6eef8;
+      font-size:14px;
+      outline:none;
+    }
+    input:focus, textarea:focus{ box-shadow: 0 6px 18px rgba(30,136,229,0.08); border-color:var(--accent); }
+    button.btn, button.small {
+      padding:10px 12px;
+      border-radius:8px;
+      border:none;
+      background:var(--accent);
+      color:#fff;
+      cursor:pointer;
+      font-weight:600;
+    }
+    button.btn.ghost, button.small.ghost{ background:transparent; color:#333; border:1px solid #dfe9f3; }
+    button.small { font-size:13px; padding:7px 10px; }
+
+    /* ====== Dashboard layout ====== */
+    .dashboard {
+      display:flex;
+      gap:20px;
+      min-height: calc(100vh - 160px);
+    }
+    .sidebar {
+      width: 220px;
+      background: #2c3e50;
+      color: white;
+      padding: 18px;
+      border-radius:12px;
+      box-shadow: 4px 0 16px rgba(0,0,0,0.08);
+      display:flex; flex-direction:column;
+      gap:10px;
+    }
+    .sidebar .muted { color: rgba(255,255,255,0.75); font-size:13px; }
+    .nav-item {
+      padding:10px 12px; border-radius:8px; cursor:pointer; margin-top:6px;
+      background:transparent; color:#fff;
+    }
+    .nav-item.active { background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
+    .content {
+      flex:1;
+      background: #f5f7fa;
+      padding:18px;
+      border-radius:12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+      overflow:auto;
+    }
+
+    .panel { background:white; padding:14px; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,0.04); }
+    .grid.two { display:flex; gap:16px; }
+    .stats { display:flex; gap:12px; margin-top:10px; flex-wrap:wrap; }
+    .stat { background:#f8fbff; padding:10px; border-radius:8px; min-width:100px; text-align:center; }
+
+    .list .event, .event-row {
+      background:#fff; border-radius:8px; padding:10px; margin-bottom:10px; display:flex;
+      justify-content:space-between; align-items:center; gap:12px; box-shadow: 0 6px 12px rgba(0,0,0,0.04);
+    }
+    .webinar-list {
+      display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px;
+    }
+    .webinar-item {
+      background: #222; color:#fff; padding:16px; border-radius:8px; box-shadow: 0 0 8px rgba(30,136,229,0.12);
+      transition: transform 0.16s ease, box-shadow 0.16s;
+    }
+    .webinar-item:hover { transform:translateY(-6px); box-shadow: 0 10px 26px rgba(30,136,229,0.14); }
+    .webinar-item h3 { margin:0 0 6px 0; color: #fff; }
+    .webinar-item p { margin:0; color: #dfefff; font-size:13px; opacity:0.95; }
+
+    footer { text-align:center; padding:14px; color:var(--muted); font-size:13px; }
+
+    /* Modal (registration popup) */
+    .modal {
+      display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%;
+      overflow: auto; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .modal.show { display:flex; }
+    .modal-content {
+      background-color: #222; color:#fff; margin:auto; padding: 26px; border-radius: 12px; width: 100%;
+      max-width:420px; box-shadow: 0 10px 35px rgba(0,0,0,0.5); position:relative;
+    }
+    .modal-content h3 { margin-top:0; color: var(--accent); text-align:center; }
+    .modal-content label { display:block; margin-top:12px; color:#ddd; font-size:14px; }
+    .modal-content input[type="text"], .modal-content input[type="email"] {
+      width:100%; padding:10px; border-radius:8px; border:none; margin-top:6px; font-size:14px;
+    }
+    .close-btn { position:absolute; top:12px; right:14px; font-size:22px; background:none; border:none; color:#999; cursor:pointer; }
+    .success-message { text-align:center; color:#4caf50; font-weight:700; margin-top:12px; display:none; }
+
+    /* simple responsive */
+    @media (max-width:860px){
+      .dashboard { flex-direction:column; }
+      .sidebar{ width:100%; display:flex; flex-direction:row; overflow:auto; gap:8px; padding:8px; }
+      .sidebar .muted { display:none; }
+    }
+    @keyframes fadeIn { from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo">EW</div>
+      <div>
+        <div class="meta">EduWebinars — Combined Demo</div>
+        <div class="sub">Create, register, attend and manage webinars</div>
+      </div>
+    </div>
+
+    <div id="topControls" style="display:flex; align-items:center; gap:12px;"></div>
+  </header>
+
+  <main class="app" id="appRoot">
+    <!-- content injected by JS -->
+  </main>
+
+  <footer>EduWebinars demo • Mock email/password auth • Data stored in your browser (localStorage)</footer>
+
+  <!-- Registration Modal (from first code) -->
+  <div id="registerModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="modalTitle" aria-modal="true">
+    <div class="modal-content" role="document">
+      <button class="close-btn" aria-label="Close registration form">&times;</button>
+      <h3 id="modalTitle">Register for Webinar</h3>
+      <form id="registrationForm">
+        <label for="webinarName">Webinar:</label>
+        <input type="text" id="webinarName" name="webinarName" readonly />
+
+        <label for="name">Your Name:</label>
+        <input type="text" id="name" name="name" required placeholder="Enter your full name" />
+
+        <label for="email">Your Email:</label>
+        <input type="email" id="email" name="email" required placeholder="Enter your email" />
+
+        <button type="submit" class="btn" style="width:100%; margin-top:14px;">Submit</button>
+        <div class="success-message" id="regSuccess">Registration successful! Thank you.</div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+/* -------------------------- App keys & helpers -------------------------- */
+const DATA_KEY = 'ew_demo_data_v1';
+const USERS_KEY = 'ew_demo_users_v1';
+const SESSION_KEY = 'ew_demo_session_v1';
+
+function uid(p='id'){ return p + '_' + Math.random().toString(36).slice(2,9); }
+function nowISO(){ return new Date().toISOString(); }
+function getData(){ try{ const raw = localStorage.getItem(DATA_KEY); if(!raw){ const seed = {webinars:[]}; localStorage.setItem(DATA_KEY, JSON.stringify(seed)); return seed; } return JSON.parse(raw);}catch(e){ console.error(e); const seed={webinars:[]}; localStorage.setItem(DATA_KEY, JSON.stringify(seed)); return seed; } }
+function saveData(d){ localStorage.setItem(DATA_KEY, JSON.stringify(d)); }
+
+function getUsers(){ const raw=localStorage.getItem(USERS_KEY); if(!raw) return seedUsers(); try{return JSON.parse(raw);}catch(e){return seedUsers();}}
+function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+function seedUsers(){ const admin = { id: uid('u'), email:'admin@demo.com', password:'admin123', displayName:'Administrator', role:'admin' }; const users=[admin]; saveUsers(users); return users; }
+
+function getSession(){ const raw=localStorage.getItem(SESSION_KEY); return raw ? JSON.parse(raw) : null; }
+function saveSession(sess){ localStorage.setItem(SESSION_KEY, JSON.stringify(sess)); }
+function clearSession(){ localStorage.removeItem(SESSION_KEY); }
+
+function formatDateLocal(iso){ if(!iso) return '-'; return new Date(iso).toLocaleString(); }
+function isPast(iso){ if(!iso) return false; return new Date(iso) < new Date(); }
+function escapeHtml(str){ if(!str) return ''; return String(str).replace(/[&<>\"']/g, function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
+
+/* -------------------------- seed demo webinars (if empty) -------------------------- */
+(function seedDemo(){
+  const d = getData();
+  if(!d.webinars) d.webinars = [];
+  if(d.webinars.length===0){
+    d.webinars.push({
+      id:uid('web'),
+      title:'Introduction to Web Development',
+      desc:'Learn the basics of HTML, CSS, and JavaScript in this beginner-friendly session.',
+      speaker:'Alex Johnson',
+      start:'2025-10-05T18:00:00.000Z',
+      end:'2025-10-05T20:00:00.000Z',
+      resources:[],
+      registrations:[],
+      recordingUrl:''
+    });
+    d.webinars.push({
+      id:uid('web'),
+      title:'Advanced Python Programming',
+      desc:'Deep dive into Python features, libraries, and best practices.',
+      speaker:'Team Backend',
+      start:'2025-10-12T18:00:00.000Z',
+      end:'2025-10-12T20:00:00.000Z',
+      resources:[],
+      registrations:[],
+      recordingUrl:''
+    });
+    d.webinars.push({
+      id:uid('web'),
+      title:'Data Science Workshop',
+      desc:'Explore data analysis, visualization, and machine learning basics.',
+      speaker:'Data Lab',
+      start:'2025-10-20T18:00:00.000Z',
+      end:'2025-10-20T21:00:00.000Z',
+      resources:[],
+      registrations:[],
+      recordingUrl:''
+    });
+    saveData(d);
+  }
+})();
+
+/* -------------------------- App render roots -------------------------- */
+const app = document.getElementById('appRoot');
+const topControls = document.getElementById('topControls');
+
+/* -------------------------- Top Controls (login/logout) -------------------------- */
+function renderTopControls(){
+  const sess = getSession();
+  topControls.innerHTML = '';
+  if(!sess){
+    const loginBtn = document.createElement('button');
+    loginBtn.textContent='Login / Signup';
+    loginBtn.className='small';
+    loginBtn.addEventListener('click', ()=> renderAuth());
+    topControls.appendChild(loginBtn);
+  } else {
+    const userDiv = document.createElement('div');
+    userDiv.style.display='flex';
+    userDiv.style.alignItems='center';
+    userDiv.style.gap='8px';
+    userDiv.style.color = '#fff';
+
+    const name = document.createElement('div');
+    name.textContent = sess.displayName;
+    name.style.fontWeight='700';
+    name.style.color='rgba(255,255,255,0.95)';
+    const logout = document.createElement('button');
+    logout.textContent='Logout';
+    logout.className='small ghost';
+    logout.addEventListener('click', ()=>{ if(confirm('Sign out?')){ clearSession(); mount(); }});
+    userDiv.appendChild(name);
+    userDiv.appendChild(logout);
+    topControls.appendChild(userDiv);
+  }
+}
+
+/* -------------------------- Mount: entry point -------------------------- */
+function mount(){
+  const sess = getSession();
+  if(!sess) renderAuth();
+  else renderDashboard(true); // if logged in, show dashboard and by default open registration view
+  renderTopControls();
+}
+
+/* -------------------------- AUTH UI -------------------------- */
+function renderAuth(){
+  app.innerHTML = `
+    <div class="auth-screen">
+      <div class="auth-card">
+        <div style="font-weight:700; font-size:18px; margin-bottom:8px">Welcome to EduWebinars</div>
+        <div class="muted" style="margin-bottom:12px">Sign in with email & password (mock local auth). Default admin: admin@demo.com / admin123</div>
+        <div id="authTabs" style="display:flex; gap:8px; margin-bottom:12px">
+          <button id="tabLogin" class="small">Login</button>
+          <button id="tabSignup" class="small ghost">Sign up</button>
+        </div>
+        <div id="authForm"></div>
+      </div>
+    </div>
+  `;
+  document.getElementById('tabLogin').addEventListener('click', ()=> showLoginForm());
+  document.getElementById('tabSignup').addEventListener('click', ()=> showSignupForm());
+  showLoginForm();
+}
+
+function showLoginForm(){
+  const form = document.getElementById('authForm');
+  form.innerHTML = `
+    <label>Email<input id="loginEmail" type="email" placeholder="you@domain.com"></label>
+    <label>Password<input id="loginPass" type="password" placeholder="password"></label>
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:10px">
+      <button id="doLogin">Sign in</button>
+    </div>
+  `;
+  document.getElementById('doLogin').addEventListener('click', ()=>{
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const pass = document.getElementById('loginPass').value;
+    if(!email || !pass){ alert('Provide email and password'); return; }
+    const users = getUsers();
+    const found = users.find(u=> u.email === email && u.password === pass);
+    if(!found){ if(confirm('User not found or password incorrect. Would you like to sign up?')) showSignupForm(); return; }
+    // save session
+    saveSession({ userId: found.id, email: found.email, displayName: found.displayName, role: found.role });
+    // render dashboard and immediately open registration view:
+    renderDashboard(true);
+    renderTopControls();
+    // scroll top
+    window.scrollTo(0,0);
+  });
+}
+
+function showSignupForm(){
+  const form = document.getElementById('authForm');
+  form.innerHTML = `
+    <label>Display name<input id="suName" type="text" placeholder="Your name"></label>
+    <label>Email<input id="suEmail" type="email" placeholder="you@domain.com"></label>
+    <label>Password<input id="suPass" type="password" placeholder="choose a password"></label>
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:10px">
+      <button id="doSignup">Create account</button>
+    </div>
+  `;
+  document.getElementById('doSignup').addEventListener('click', ()=>{
+    const name = document.getElementById('suName').value.trim();
+    const email = document.getElementById('suEmail').value.trim().toLowerCase();
+    const pass = document.getElementById('suPass').value;
+    if(!email || !pass || !name){ alert('All fields required'); return; }
+    const users = getUsers();
+    if(users.some(u=>u.email===email)){ alert('Email already registered — try login'); showLoginForm(); return; }
+    const newUser = { id: uid('u'), email, password: pass, displayName: name, role: 'user' };
+    users.push(newUser); saveUsers(users);
+    saveSession({ userId: newUser.id, email:newUser.email, displayName:newUser.displayName, role:newUser.role });
+    renderDashboard(true);
+    renderTopControls();
+  });
+}
+
+/* -------------------------- DASHBOARD UI -------------------------- */
+function renderDashboard(openRegistration=false){
+  const sess = getSession();
+  if(!sess){ renderAuth(); renderTopControls(); return; }
+  const d = getData();
+  app.innerHTML = `
+    <div class="dashboard">
+      <aside class="sidebar" id="sidebar">
+        <div style="font-weight:700">${escapeHtml(sess.displayName)}</div>
+        <div class="muted" style="font-size:13px">Mode: ${escapeHtml(sess.role)}</div>
+        <div style="height:10px"></div>
+        <div class="nav-item active" data-view="register">Webinars</div>
+        <div class="nav-item" data-view="events">Events</div>
+        <div class="nav-item" data-view="resources">Resources</div>
+        <div class="nav-item" data-view="profile">Profile</div>
+        ${sess.role === 'admin' ? '<div class="nav-item" data-view="registrations">Registrations</div>' : ''}
+        <div style="flex:1"></div>
+        <div style="font-size:12px; color:rgba(255,255,255,0.7)">Local demo • data in browser</div>
+      </aside>
+
+      <section class="content">
+        <div id="viewRoot"></div>
+      </section>
+    </div>
+  `;
+  // attach nav handlers
+  document.querySelectorAll('#sidebar .nav-item').forEach(it=>{
+    it.addEventListener('click', ()=>{
+      document.querySelectorAll('#sidebar .nav-item').forEach(x=>x.classList.remove('active'));
+      it.classList.add('active');
+      const view = it.getAttribute('data-view'); showView(view);
+    });
+  });
+
+  // default to register view (webinar registration) if openRegistration true, else home-like events
+  if(openRegistration) showView('register');
+  else showView('home');
+}
+
+/* -------------------------- Views -------------------------- */
+function showView(v){
+  const sess = getSession();
+  const d = getData();
+  const root = document.getElementById('viewRoot');
+
+  if(v === 'home'){
+    const upcoming = d.webinars.filter(w=> !isPast(w.end));
+    const past = d.webinars.filter(w=> isPast(w.end));
+    const totalRegs = d.webinars.reduce((acc,w)=> acc + (w.registrations? w.registrations.length:0),0);
+    root.innerHTML = `
+      <div style="display:flex; gap:12px; margin-bottom:12px">
+        <div style="flex:1" class="panel">
+          <div style="font-weight:700">Overview</div>
+          <div class="muted">Quick metrics</div>
+          <div style="height:12px"></div>
+          <div class="stats">
+            <div class="stat"><div style="font-size:18px; font-weight:700">${d.webinars.length}</div><div class="muted">Events</div></div>
+            <div class="stat"><div style="font-size:18px; font-weight:700">${upcoming.length}</div><div class="muted">Upcoming</div></div>
+            <div class="stat"><div style="font-size:18px; font-weight:700">${past.length}</div><div class="muted">Past</div></div>
+            <div class="stat"><div style="font-size:18px; font-weight:700">${totalRegs}</div><div class="muted">Registrations</div></div>
+          </div>
+        </div>
+        <div style="width:320px" class="panel">
+          <div style="display:flex; justify-content:space-between; align-items:center"><div style="font-weight:700">Quick actions</div>
+            <div>${sess.role === 'admin' ? '<button id="quickNew" class="small">+ New</button>' : ''}</div>
+          </div>
+          <div class="muted" style="margin-top:8px">Create or manage events quickly</div>
+          <div style="margin-top:12px"><input id="quickSearch" placeholder="Search events..." style="width:100%; padding:8px; border-radius:8px; border:1px solid #eef2ff"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div style="font-weight:700">Upcoming events</div>
+        <div class="muted" style="margin-top:8px">Next scheduled sessions</div>
+        <div style="margin-top:10px" id="homeEventsList"></div>
+      </div>
+    `;
+    document.getElementById('quickSearch').addEventListener('input', ()=> renderHomeEvents());
+    document.getElementById('quickNew')?.addEventListener('click', ()=> openWebinarModal());
+    renderHomeEvents();
+    return;
+  }
+
+  if(v === 'events'){
+    root.innerHTML = `
+      <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center"><div style="font-weight:700">Events</div>
+        <div><input id="evSearch" placeholder="Search" style="padding:8px;border-radius:8px;border:1px solid #eef2ff"></div></div>
+        <div class="muted" style="margin-top:8px">Manage or register for events</div>
+        <div style="height:12px"></div>
+        <div class="list" id="eventsList"></div>
+      </div>
+    `;
+    document.getElementById('evSearch').addEventListener('input', ()=> renderEventsList());
+    renderEventsList();
+    return;
+  }
+
+  if(v === 'resources'){
+    root.innerHTML = `
+      <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center"><div style="font-weight:700">Resources & Recordings</div></div>
+        <div class="muted" style="margin-top:8px">Access materials uploaded for events</div>
+        <div id="resourceArea" style="margin-top:12px"></div>
+      </div>
+    `;
+    renderResourcesArea();
+    return;
+  }
+
+  if(v === 'profile'){
+    root.innerHTML = `
+      <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center"><div style="font-weight:700">Profile</div></div>
+        <div style="margin-top:10px">
+          <div><strong>Name</strong><div class="muted">${escapeHtml(sess.displayName)}</div></div>
+          <div style="margin-top:8px"><strong>Email</strong><div class="muted">${escapeHtml(sess.email)}</div></div>
+          <div style="margin-top:8px"><strong>Role</strong><div class="muted">${escapeHtml(sess.role)}</div></div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if(v === 'registrations'){
+    if(sess.role !== 'admin'){ root.innerHTML = '<div class="panel"><div class="muted">Unauthorized</div></div>'; return; }
+    root.innerHTML = `
+      <div class="panel">
+        <div style="font-weight:700">All Registrations</div>
+        <div class="muted" style="margin-top:6px">View registrants across events</div>
+        <div style="margin-top:12px" id="regsRoot"></div>
+      </div>
+    `;
+    renderAllRegistrations();
+    return;
+  }
+
+  // REGISTER VIEW (this is the view from first code)
+  if(v === 'register'){
+    root.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+        <div style="font-weight:700">Upcoming Webinars</div>
+        <div class="muted">Register to attend — modal sign-up</div>
+      </div>
+      <div class="webinar-list" id="registerList"></div>
+    `;
+    renderRegisterList();
+    return;
+  }
+
+  // fallback
+  root.innerHTML = '<div class="panel">Empty view</div>';
+}
+
+/* -------------------------- Renders used by multiple views -------------------------- */
+
+function renderHomeEvents(){
+  const q = (document.getElementById('quickSearch')?.value || '').toLowerCase();
+  const list = document.getElementById('homeEventsList');
+  const d = getData();
+  const upcoming = d.webinars.filter(w=> !isPast(w.end)).sort((a,b)=> new Date(a.start)-new Date(b.start));
+  list.innerHTML='';
+  if(upcoming.length===0) { list.innerHTML='<div class="muted">No upcoming events</div>'; return; }
+  upcoming.filter(w=> w.title.toLowerCase().includes(q) || (w.desc||'').toLowerCase().includes(q)).forEach(w=>{
+    const el = document.createElement('div'); el.className='event-row';
+    el.innerHTML = `<div style="flex:1"><div style="font-weight:700">${escapeHtml(w.title)}</div><div class="muted" style="font-size:12px">${escapeHtml(w.speaker)} • ${formatDateLocal(w.start)}</div></div>
+      <div style="display:flex; gap:8px; align-items:center"><button class="small" data-action="view" data-id="${w.id}">Open</button></div>`;
+    el.querySelector('button')?.addEventListener('click', ()=> openAttend(w.id));
+    list.appendChild(el);
+  });
+}
+
+function renderEventsList(){
+  const q = (document.getElementById('evSearch')?.value || '').toLowerCase();
+  const list = document.getElementById('eventsList');
+  const d = getData();
+  const events = d.webinars.slice().sort((a,b)=> new Date(a.start)-new Date(b.start));
+  list.innerHTML='';
+  if(events.length===0) { list.innerHTML='<div class="muted">No events.</div>'; return; }
+  events.filter(w=> w.title.toLowerCase().includes(q) || (w.desc||'').toLowerCase().includes(q)).forEach(w=>{
+    const el = document.createElement('div'); el.className='event';
+    const isAdmin = getSession().role === 'admin';
+    el.innerHTML = `<div style="flex:1"><div style="font-weight:700">${escapeHtml(w.title)}</div><div class="muted" style="font-size:12px">${escapeHtml(w.speaker)} • ${formatDateLocal(w.start)}</div></div>
+      <div style="display:flex; gap:8px; align-items:center">${isAdmin? `<button class="small" data-action="regs" data-id="${w.id}">Regs</button><button class="small ghost" data-action="edit" data-id="${w.id}">Edit</button><button class="small ghost" data-action="del" data-id="${w.id}">Delete</button>`: ''}<button class="small" data-action="view" data-id="${w.id}">${isPast(w.end)? 'View' : 'Register'}</button></div>`;
+    // bind
+    el.querySelectorAll('button').forEach(btn=> btn.addEventListener('click', (ev)=>{
+      const act = btn.getAttribute('data-action'); const id = btn.getAttribute('data-id');
+      if(act==='view') openAttend(id);
+      if(act==='edit') openWebinarModal(id);
+      if(act==='del') { if(confirm('Delete event?')){ const data=getData(); data.webinars = data.webinars.filter(x=>x.id!==id); saveData(data); renderEventsList(); } }
+      if(act==='regs') openRegistrations(id);
+      if(!act) { const id2 = btn.getAttribute('data-id'); if(id2) openAttend(id2);}
+    }));
+    list.appendChild(el);
+  });
+}
+
+/* -------------------------- Resources (kept from earlier) -------------------------- */
+function renderResourcesArea(){
+  const sess = getSession(); const area = document.getElementById('resourceArea'); const d = getData();
+  area.innerHTML='';
+  if(sess.role === 'admin'){
+    d.webinars.slice().sort((a,b)=> new Date(b.start)-new Date(a.start)).forEach(w=>{
+      const div = document.createElement('div'); div.style.marginBottom='10px';
+      div.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center"><div><div style="font-weight:700">${escapeHtml(w.title)}</div><div class="muted" style="font-size:12px">${formatDateLocal(w.start)}</div></div><div><input type="file" id="file_${w.id}" style="display:none"><button class="small" data-upload="${w.id}">Upload</button><button class="small ghost" data-setrec="${w.id}">${w.recordingUrl? 'Update rec':'Add rec'}</button></div></div><div style="margin-top:8px" id="reslist_${w.id}"></div>`;
+      area.appendChild(div);
+      const fileInput = div.querySelector(`#file_${w.id}`); div.querySelector(`[data-upload]`).addEventListener('click', ()=> fileInput.click());
+      fileInput.addEventListener('change', (ev)=>{ const f = ev.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = (e)=>{ const dataUrl = e.target.result; const res = {id:uid('res'), name:f.name, size:f.size, dataUrl, uploadedAt:nowISO()}; const dd = getData(); const target = dd.webinars.find(x=>x.id===w.id); target.resources = target.resources||[]; target.resources.push(res); saveData(dd); renderResourcesArea(); alert('Uploaded (stored in browser)'); }; r.readAsDataURL(f); });
+      div.querySelector(`[data-setrec]`).addEventListener('click', ()=>{ const url = prompt('Recording URL (leave blank to clear):', w.recordingUrl || ''); const dd = getData(); const t = dd.webinars.find(x=>x.id===w.id); t.recordingUrl = url || ''; saveData(dd); renderResourcesArea(); });
+      // list resources
+      const listEl = div.querySelector(`#reslist_${w.id}`); listEl.innerHTML='';
+      (w.resources||[]).forEach(r=>{ const it = document.createElement('div'); it.style.padding='8px'; it.style.marginTop='6px'; it.style.borderRadius='8px'; it.style.background='#fbfdff'; it.style.display='flex'; it.style.justifyContent='space-between'; it.innerHTML = `<div>${escapeHtml(r.name)} <span class="muted" style="font-size:12px">• ${new Date(r.uploadedAt).toLocaleString()}</span></div><div><a href="${r.dataUrl}" download="${encodeURIComponent(r.name)}"><button class="small">Download</button></a> <button class="small ghost" data-resdel="${r.id}" data-w="${w.id}">Delete</button></div>`; listEl.appendChild(it); it.querySelector(`[data-resdel]`)?.addEventListener('click', ()=>{ if(confirm('Delete resource?')){ const dd=getData(); const tw = dd.webinars.find(x=>x.id===w.id); tw.resources = tw.resources.filter(rr=>rr.id!==r.id); saveData(dd); renderResourcesArea(); } }); });
+    });
+  } else {
+    d.webinars.filter(x=> (x.resources && x.resources.length) || x.recordingUrl).sort((a,b)=> new Date(b.start)-new Date(a.start)).forEach(w=>{
+      const box = document.createElement('div'); box.style.marginBottom='10px';
+      box.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center"><div><div style="font-weight:700">${escapeHtml(w.title)}</div><div class="muted">${formatDateLocal(w.start)}</div></div><div>${w.recordingUrl? `<a href="${w.recordingUrl}" target="_blank"><button class="small">Open rec</button></a>` : ''} ${w.resources && w.resources.length? `<button class="small ghost" data-openres="${w.id}">Materials</button>` : ''}</div></div><div style="margin-top:8px" id="userRes_${w.id}"></div>`;
+      area.appendChild(box); box.querySelector(`[data-openres]`)?.addEventListener('click', ()=>{ const list = w.resources.map(r=> `<div style="padding:8px; border-radius:8px; background:#fff; border:1px solid #eef6ff; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;"><div>${escapeHtml(r.name)}</div><div><a href="${r.dataUrl}" download="${encodeURIComponent(r.name)}"><button class="small">Download</button></a></div></div>`).join(''); const targ = box.querySelector(`#userRes_${w.id}`); targ.innerHTML = list; });
+    });
+  }
+}
+
+/* -------------------------- Registrations (admin view) -------------------------- */
+function renderAllRegistrations(){
+  const root = document.getElementById('regsRoot');
+  const d = getData();
+  root.innerHTML='';
+  const table = document.createElement('table'); table.style.width='100%';
+  table.innerHTML = `<thead><tr><th style="text-align:left">Event</th><th style="text-align:left">Registrant</th><th style="text-align:left">When</th></tr></thead>`;
+  const tbody = document.createElement('tbody');
+  d.webinars.forEach(w=>{
+    (w.registrations||[]).forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="padding:8px">${escapeHtml(w.title)}</td><td style="padding:8px">${escapeHtml(r.name)}<div class="muted" style="font-size:12px">${escapeHtml(r.email||'')}</div></td><td style="padding:8px">${new Date(r.registeredAt).toLocaleString()}</td>`;
+      tbody.appendChild(tr);
+    });
+  });
+  table.appendChild(tbody);
+  root.appendChild(table);
+}
+
+/* -------------------------- Registrations modal handling (from first code) -------------------------- */
+const modal = document.getElementById('registerModal');
+const closeBtn = modal.querySelector('.close-btn');
+const webinarNameInput = document.getElementById('webinarName');
+const registrationForm = document.getElementById('registrationForm');
+const successMessage = document.getElementById('regSuccess');
+
+function openRegistrationModal(webinarTitle, webinarId){
+  webinarNameInput.value = webinarTitle;
+  // fill name/email if logged in
+  const sess = getSession();
+  document.getElementById('name').value = sess?.displayName || '';
+  document.getElementById('email').value = sess?.email || '';
+  registrationForm.style.display = 'block';
+  successMessage.style.display = 'none';
+  modal.dataset.webinarId = webinarId;
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden','false');
+}
+
+function closeRegistrationModal(){
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden','true');
+  registrationForm.reset();
+  // clear dataset
+  delete modal.dataset.webinarId;
+}
+
+closeBtn.addEventListener('click', ()=>{
+  closeRegistrationModal();
+});
+
+// close on outside click
+window.addEventListener('click', (event) => {
+  if (event.target === modal) {
+    closeRegistrationModal();
+  }
+});
+
+// handle registration submit (save into webinar.registrations)
+registrationForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const wid = modal.dataset.webinarId;
+  if(!wid){ alert('No webinar selected'); return; }
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  if(!name || !email){ alert('Name and email required'); return; }
+  // save
+  const dd = getData();
+  const target = dd.webinars.find(x=>x.id===wid);
+  if(!target) { alert('Webinar not found'); closeRegistrationModal(); return; }
+  target.registrations = target.registrations || [];
+  // If user is logged in, link to userId
+  const sess = getSession();
+  const reg = { id: uid('reg'), name, email, registeredAt: nowISO(), userId: sess ? sess.userId : null };
+  // prevent duplicate (same email) for same webinar
+  const exists = target.registrations.some(r=> r.email.toLowerCase() === email.toLowerCase());
+  if(exists){ alert('You are already registered for this webinar'); return; }
+  target.registrations.push(reg);
+  saveData(dd);
+  registrationForm.style.display = 'none';
+  successMessage.style.display = 'block';
+  // also update dashboard if visible
+  try{ renderHomeEvents(); renderEventsList(); renderRegisterList(); }catch(e){}
+});
+
+/* -------------------------- Render the webinar list (registration view) -------------------------- */
+function renderRegisterList(){
+  const container = document.getElementById('registerList');
+  const d = getData();
+  container.innerHTML = '';
+  if(!d.webinars || d.webinars.length===0){ container.innerHTML = '<div class="muted">No webinars found.</div>'; return; }
+  d.webinars.slice().sort((a,b)=> new Date(a.start)-new Date(b.start)).forEach(w=>{
+    const div = document.createElement('div'); div.className='webinar-item';
+    const dateText = w.start ? formatDateLocal(w.start) : 'TBD';
+    const desc = w.desc || '';
+    div.innerHTML = `<h3>${escapeHtml(w.title)}</h3>
+      <p style="margin-top:6px">${escapeHtml(desc)}</p>
+      <p style="margin-top:8px" class="muted">Date: ${escapeHtml(dateText)}</p>
+      <div style="margin-top:12px; display:flex; justify-content:flex-end"><button class="btn register-btn" data-id="${w.id}" data-title="${escapeHtml(w.title)}">Register</button></div>`;
+    container.appendChild(div);
+  });
+  // attach handlers
+  document.querySelectorAll('.register-btn').forEach(button => {
+    button.addEventListener('click', (e) => {
+      const webinarId = e.target.getAttribute('data-id');
+      const webinarTitle = e.target.getAttribute('data-title');
+      // open modal
+      openRegistrationModal(webinarTitle, webinarId);
+    });
+  });
+}
+
+/* -------------------------- Attend / Register / View (detailed view) -------------------------- */
+function openAttend(id){
+  const d = getData();
+  const w = d.webinars.find(x=>x.id===id);
+  const sess = getSession();
+  const view = document.getElementById('viewRoot');
+  view.innerHTML = `<div class="panel"><div style="display:flex; justify-content:space-between; align-items:center"><div><div style="font-weight:700">${escapeHtml(w.title)}</div><div class="muted">${formatDateLocal(w.start)} — ${formatDateLocal(w.end)}</div></div><div><button class="small ghost" id="back">Back</button></div></div><div style="margin-top:12px" id="attendBody"></div></div>`;
+  document.getElementById('back').addEventListener('click', ()=> showView('register'));
+  const body = document.getElementById('attendBody');
+  if(!isPast(w.end)){
+    const already = (w.registrations||[]).some(r=> r.userId === sess?.userId || (sess?.email && r.email && r.email.toLowerCase() === sess.email.toLowerCase()));
+    body.innerHTML = `<div>${escapeHtml(w.desc || '')}</div><div style="margin-top:12px"><button id="regBtn" class="small">${already? 'Registered':'Register'}</button></div>`;
+    document.getElementById('regBtn').addEventListener('click', ()=>{ if(already) return; // open modal to register
+      openRegistrationModal(w.title, w.id);
+    });
+  } else {
+    let html = `<div>${escapeHtml(w.desc||'')}</div>`;
+    if(w.recordingUrl) html += `<div style="margin-top:8px"><a href="${w.recordingUrl}" target="_blank"><button class="small">Open recording</button></a></div>`;
+    if(w.resources && w.resources.length){
+      html += '<div style="margin-top:8px"><div style="font-weight:700">Materials</div>' + w.resources.map(r=> `<div style="padding:8px;margin-top:6px;border-radius:8px;background:#fff;border:1px solid #eef6ff;display:flex;justify-content:space-between"><div>${escapeHtml(r.name)}</div><div><a href="${r.dataUrl}" download="${encodeURIComponent(r.name)}"><button class="small">Download</button></a></div></div>`).join('') + '</div>';
+    }
+    body.innerHTML = html;
+  }
+}
+
+/* -------------------------- Webinar create/edit modal (inline) -------------------------- */
+function openWebinarModal(editId){
+  const d = getData(); const w = editId ? d.webinars.find(x=>x.id===editId) : null; const view = document.getElementById('viewRoot');
+  view.innerHTML = `<div class="panel"><div style="display:flex; justify-content:space-between; align-items:center"><div style="font-weight:700">${w? 'Edit':'New'} webinar</div></div>
+    <div style="margin-top:8px"><label>Title<input id="wTitle" value="${w? escapeHtml(w.title):''}"></label>
+    <label>Description<textarea id="wDesc">${w? escapeHtml(w.desc):''}</textarea></label>
+    <div style="display:flex; gap:8px"><label style="flex:1">Start<input id="wStart" type="datetime-local" value="${w && w.start? new Date(w.start).toISOString().slice(0,16):''}"></label><label style="flex:1">End<input id="wEnd" type="datetime-local" value="${w && w.end? new Date(w.end).toISOString().slice(0,16):''}"></label></div>
+    <label>Speaker<input id="wSpeaker" value="${w? escapeHtml(w.speaker):''}"></label>
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:10px"><button id="saveW" class="small">Save</button><button id="cancelW" class="small ghost">Cancel</button></div></div></div>`;
+  document.getElementById('cancelW').addEventListener('click', ()=> showView('events'));
+  document.getElementById('saveW').addEventListener('click', ()=>{
+    const title = document.getElementById('wTitle').value.trim(); if(!title){ alert('Title required'); return; }
+    const desc = document.getElementById('wDesc').value; const start = document.getElementById('wStart').value ? new Date(document.getElementById('wStart').value).toISOString() : ''; const end = document.getElementById('wEnd').value ? new Date(document.getElementById('wEnd').value).toISOString() : ''; const speaker = document.getElementById('wSpeaker').value;
+    const dd = getData(); if(w){ w.title = title; w.desc = desc; w.start = start; w.end = end; w.speaker = speaker; } else { dd.webinars.push({ id: uid('web'), title, desc, speaker, start, end, resources:[], registrations:[], recordingUrl:'' }); }
+    saveData(dd); showView('events');
+  });
+}
+
+/* -------------------------- Registrations admin view (per event) -------------------------- */
+function openRegistrations(id){
+  const d = getData(); const w = d.webinars.find(x=>x.id===id);
+  const prev = document.getElementById('viewRoot'); prev.innerHTML = `<div class="panel"><div style="font-weight:700">Registrations — ${escapeHtml(w.title)}</div><div style="margin-top:8px" id="regsList"></div><div style="margin-top:8px"><button class="small ghost" id="backEvents">Back</button></div></div>`;
+  document.getElementById('backEvents').addEventListener('click', ()=> showView('events'));
+  const regsList = document.getElementById('regsList'); if(!w.registrations||w.registrations.length===0) regsList.innerHTML = '<div class="muted">No registrations yet.</div>';
+  else {
+    const table = document.createElement('table'); table.style.width='100%'; table.innerHTML = `<thead><tr><th>Name / Email</th><th>Registered at</th><th>Actions</th></tr></thead><tbody></tbody>`;
+    const tbody = table.querySelector('tbody');
+    w.registrations.forEach(r=>{
+      const tr = document.createElement('tr'); tr.innerHTML = `<td>${escapeHtml(r.name)}<div class="muted" style="font-size:12px">${escapeHtml(r.email||'')}</div></td><td>${new Date(r.registeredAt).toLocaleString()}</td><td><button class="small ghost" data-unreg="${r.id}" data-w="${w.id}">Remove</button></td>`;
+      tbody.appendChild(tr);
+    });
+    regsList.appendChild(table);
+    regsList.addEventListener('click', (ev)=>{
+      const btn = ev.target.closest('button[data-unreg]'); if(!btn) return;
+      const rid = btn.getAttribute('data-unreg'); const wid = btn.getAttribute('data-w');
+      if(!confirm('Remove registration?')) return;
+      const dd = getData(); const we = dd.webinars.find(x=>x.id===wid); we.registrations = we.registrations.filter(rr=> rr.id !== rid); saveData(dd); openRegistrations(wid);
+    });
+  }
+}
+
+/* -------------------------- Render register list (updates used by modal) -------------------------- */
+// function renderRegisterList() defined above
+
+/* -------------------------- Initial mount -------------------------- */
+mount();
+
+  </script>
+</body>
+</html>
